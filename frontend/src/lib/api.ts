@@ -1,4 +1,4 @@
-import { getSession } from 'next-auth/react';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -15,16 +15,15 @@ export async function api<T = unknown>(path: string, options: FetchOptions = {})
   };
 
   if (!skipAuth) {
-    const session = await getSession();
-    const token = (session?.user as Record<string, unknown> | undefined)?.backendAccessToken as string | undefined;
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    const supabase = getSupabaseBrowserClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
     }
   }
 
   const res = await fetch(`${API_URL}${path}`, {
     ...fetchOptions,
-    credentials: 'include',
     headers,
   });
 

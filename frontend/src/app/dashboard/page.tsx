@@ -1,26 +1,23 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/AuthProvider';
 import { api } from '@/lib/api';
 import Link from 'next/link';
 import type { User, Notification as Notif, Payment } from '@/types';
 import DashboardShell from '@/components/DashboardShell';
 
 export default function DashboardPage() {
-  const { data: session } = useSession();
+  const { status } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [notifications, setNotifications] = useState<Notif[]>([]);
   const [recentPayments, setRecentPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!session?.user) return;
+    if (status !== 'authenticated') return;
     Promise.all([
-      api<{ user: User }>('/api/auth/me').catch(() => {
-        const u = session.user as Record<string, unknown>;
-        return { user: { id: u.id, name: u.name, email: u.email, role: u.role, status: u.status, emailVerified: false, createdAt: '' } as User };
-      }),
+      api<{ user: User }>('/api/auth/me').catch(() => ({ user: null })),
       api<{ notifications: Notif[] }>('/api/notifications').catch(() => ({ notifications: [] })),
       api<{ payments: Payment[] }>('/api/payments/history?limit=5').catch(() => ({ payments: [] })),
     ]).then(([userData, notifData, payData]) => {
@@ -29,7 +26,7 @@ export default function DashboardPage() {
       setRecentPayments(payData.payments.slice(0, 5));
       setLoading(false);
     });
-  }, [session]);
+  }, [status]);
 
   if (loading || !user) {
     return (

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, Suspense } from 'react';
-import { signIn } from 'next-auth/react';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -20,13 +20,22 @@ function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    const result = await signIn('credentials', { email, password, redirect: false });
+    const supabase = getSupabaseBrowserClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (result?.error) {
+    if (signInError) {
       setError('Invalid email or password');
     } else {
       router.push('/dashboard');
     }
+  };
+
+  const handleGoogleSignIn = async () => {
+    const supabase = getSupabaseBrowserClient();
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/dashboard` },
+    });
   };
 
   return (
@@ -65,7 +74,7 @@ function LoginForm() {
       </form>
 
       <div className="mt-4">
-        <button onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+        <button onClick={handleGoogleSignIn}
           className="w-full neo-btn neo-btn-secondary">
           Continue with Google
         </button>

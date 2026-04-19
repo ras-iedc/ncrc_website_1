@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import cookieParser from 'cookie-parser';
 import { env } from './config/env.js';
 import { globalLimiter } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -31,7 +30,6 @@ app.use(globalLimiter);
 // Body parsing — webhook route needs raw body, handled in payment.routes.ts
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
 
 // Request logging
 app.use((req, _res, next) => {

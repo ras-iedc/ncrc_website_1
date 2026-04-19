@@ -1,25 +1,36 @@
-import rateLimit from 'express-rate-limit';
+import type { Request, Response, NextFunction } from 'express';
+import { Ratelimit } from '@upstash/ratelimit';
+import { redis } from '../config/redis.js';
 
-export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many requests, please try again later' },
-});
+function createLimiter(prefix: string, maxRequests: number, windowSec: number) {
+  const ratelimit = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(maxRequests, `${windowSec} s`),
+    prefix: `rl:${prefix}`,
+  });
 
-export const paymentLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many payment requests, please try again later' },
-});
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const key = req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown';
+    const { success, limit, remaining, reset } = await ratelimit.limit(key);
 
-export const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 200,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many requests, please try again later' },
-});
+    res.setHeader('X-RateLimit-Limit', limit);
+    res.setHeader('X-RateLimit-Remaining', remaining);
+    res.setHeader('X-RateLimit-Reset', reset);
+
+    if (!success) {
+      res.status(429).json({ error: 'Too many requests, please try again later' });
+      return;
+    }
+
+    next();
+  };
+}
+
+// 10 requests per 15 min for auth endpoints
+export const authLimiter = createLimiter('auth', 10, 900);
+
+// 20 requests per 15 min for payment endpoints
+export const paymentLimiter = createLimiter('payment', 20, 900);
+
+// 200 requests per 15 min globally
+export const globalLimiter = createLimiter('global', 200, 900);

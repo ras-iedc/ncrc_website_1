@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { verifyToken } from '../utils/jwt.js';
+import { supabaseAdmin } from '../config/supabase.js';
 import { prisma } from '../config/db.js';
 
 declare global {
@@ -17,18 +17,31 @@ declare global {
 
 export async function auth(req: Request, res: Response, next: NextFunction): Promise<void> {
   const token =
-    req.cookies?.accessToken ||
-    (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null);
+    req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null;
   if (!token) {
     res.status(401).json({ error: 'Authentication required' });
     return;
   }
 
   try {
-    const payload = verifyToken(token);
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId, deletedAt: null },
-      select: { id: true, role: true, status: true, email: true },
+    // Verify the Supabase access token
+    const { data: { user: supabaseUser }, error } = await supabaseAdmin.auth.getUser(token);
+
+    if (error || !supabaseUser) {
+      res.status(401).json({ error: 'Invalid or expired token' });
+      return;
+    }
+
+    // Find the app user linked to this Supabase user
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { supabaseId: supabaseUser.id },
+          { email: supabaseUser.email },
+        ],
+        deletedAt: null,
+      },
+      select: { id: true, role: true, status: true, email: true, supabaseId: true },
     });
 
     if (!user) {
@@ -36,7 +49,15 @@ export async function auth(req: Request, res: Response, next: NextFunction): Pro
       return;
     }
 
-    req.user = user;
+    // Auto-link supabaseId if not set yet
+    if (!user.supabaseId) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { supabaseId: supabaseUser.id, emailVerified: true },
+      });
+    }
+
+    req.user = { id: user.id, role: user.role, status: user.status, email: user.email };
     next();
   } catch {
     res.status(401).json({ error: 'Invalid or expired token' });

@@ -1,24 +1,40 @@
 'use client';
 
-import { useState, Suspense } from 'react';
-import { api } from '@/lib/api';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 function ResetPasswordForm() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const token = searchParams.get('token') || '';
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    // Supabase puts recovery tokens in the URL hash; the client picks them up automatically
+    async function checkSession() {
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const { data } = await supabase.auth.getSession();
+        if (data.session) setReady(true);
+        else setError('Invalid or expired reset link. Please request a new one.');
+      } catch {
+        setError('Auth not configured');
+      }
+    }
+    checkSession();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      await api('/api/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password }) });
+      const supabase = getSupabaseBrowserClient();
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      if (updateError) throw updateError;
       router.push('/login?reset=true');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Reset failed');
@@ -42,7 +58,7 @@ function ResetPasswordForm() {
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
             className="neo-input" placeholder="Min 8 characters" required minLength={8} />
         </div>
-        <button type="submit" disabled={loading} className="w-full neo-btn neo-btn-primary disabled:opacity-50">
+        <button type="submit" disabled={loading || !ready} className="w-full neo-btn neo-btn-primary disabled:opacity-50">
           {loading ? 'Resetting...' : 'Reset Password'}
         </button>
       </form>

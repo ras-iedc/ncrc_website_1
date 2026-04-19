@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/AuthProvider';
 
 const memberLinks = [
   { href: '/dashboard', label: 'Overview', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
@@ -23,8 +23,8 @@ const adminLinks = [
 
 export default function DashboardSidebar() {
   const pathname = usePathname();
-  const { data: session } = useSession();
-  const isAdmin = (session?.user as Record<string, unknown> | undefined)?.role === 'ADMIN';
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
 
   return (
     <aside className="w-64 shrink-0 border-r-2 border-ink-900 bg-white min-h-[calc(100vh-4rem)] hidden lg:block">

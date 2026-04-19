@@ -2,8 +2,13 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const required = [
-  'DATABASE_URL',
-  'JWT_SECRET',
+  'POSTGRES_PRISMA_URL',
+  'POSTGRES_URL_NON_POOLING',
+  'SUPABASE_URL',
+  'SUPABASE_ANON_KEY',
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'UPSTASH_REDIS_REST_URL',
+  'UPSTASH_REDIS_REST_TOKEN',
   'ALLOWED_ORIGINS',
   'SMTP_HOST',
   'SMTP_PORT',
@@ -23,10 +28,13 @@ if (missing.length > 0) {
 }
 
 export const env = {
-  DATABASE_URL: process.env.DATABASE_URL!,
-  JWT_SECRET: process.env.JWT_SECRET!,
-  JWT_ACCESS_EXPIRY: process.env.JWT_ACCESS_EXPIRY || '15m',
-  JWT_REFRESH_EXPIRY: process.env.JWT_REFRESH_EXPIRY || '7d',
+  POSTGRES_PRISMA_URL: process.env.POSTGRES_PRISMA_URL!,
+  POSTGRES_URL_NON_POOLING: process.env.POSTGRES_URL_NON_POOLING!,
+  SUPABASE_URL: process.env.SUPABASE_URL!,
+  SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY!,
+  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL!,
+  UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN!,
   ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS!.split(',').map((s) => s.trim()),
   RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || '',
   RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || '',

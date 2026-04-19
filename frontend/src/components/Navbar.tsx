@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useSession, signOut } from 'next-auth/react';
+import { useAuth } from '@/components/AuthProvider';
 import { useState } from 'react';
 
 export default function Navbar() {
-  const { data: session } = useSession();
+  const { user, status, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
-  const user = session?.user as Record<string, unknown> | undefined;
   const isAdmin = user?.role === 'ADMIN';
+  const isAuthenticated = status === 'authenticated';
 
   return (
     <nav className="border-b-2 border-ink-900 bg-white">
@@ -25,12 +25,12 @@ export default function Navbar() {
             <NavLink href="/">Home</NavLink>
             <NavLink href="/posts">News</NavLink>
             <NavLink href="/shop">Shop</NavLink>
-            {session ? (
+            {isAuthenticated ? (
               <>
                 <NavLink href="/dashboard">Dashboard</NavLink>
                 {isAdmin && <NavLink href="/admin/members">Admin</NavLink>}
                 <button
-                  onClick={() => signOut({ callbackUrl: '/' })}
+                  onClick={() => signOut()}
                   className="ml-2 neo-btn neo-btn-secondary text-sm py-1.5 px-4"
                 >
                   Sign Out
@@ -66,12 +66,12 @@ export default function Navbar() {
             <MobileLink href="/" onClick={() => setMenuOpen(false)}>Home</MobileLink>
             <MobileLink href="/posts" onClick={() => setMenuOpen(false)}>News</MobileLink>
             <MobileLink href="/shop" onClick={() => setMenuOpen(false)}>Shop</MobileLink>
-            {session ? (
+            {isAuthenticated ? (
               <>
                 <MobileLink href="/dashboard" onClick={() => setMenuOpen(false)}>Dashboard</MobileLink>
                 {isAdmin && <MobileLink href="/admin/members" onClick={() => setMenuOpen(false)}>Admin</MobileLink>}
                 <button
-                  onClick={() => { setMenuOpen(false); signOut({ callbackUrl: '/' }); }}
+                  onClick={() => { setMenuOpen(false); signOut(); }}
                   className="block w-full text-left px-3 py-2 text-sm font-medium text-accent hover:bg-cream-100"
                 >
                   Sign Out

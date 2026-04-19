@@ -1,13 +1,13 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import DashboardSidebar from '@/components/DashboardSidebar';
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession();
+  const { status } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -27,7 +27,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     );
   }
 
-  if (!session) return null;
+  if (status === 'unauthenticated') return null;
 
   return (
     <div className="min-h-screen flex flex-col">
