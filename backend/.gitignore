@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+logs/
+storage/avatars/*
+storage/invoices/*
+!storage/avatars/.gitkeep
+!storage/invoices/.gitkeep

@@ -1,0 +1,16 @@
+import nodemailer from 'nodemailer';
+import { env } from './env.js';
+
+export const transporter = nodemailer.createTransport({
+  host: env.SMTP_HOST,
+  port: env.SMTP_PORT,
+  secure: true,
+  auth: {
+    user: env.SMTP_USER,
+    pass: env.SMTP_PASS,
+  },
+});
+
+export const mailDefaults = {
+  from: `"${env.CLUB_NAME}" <${env.SMTP_USER}>`,
+};

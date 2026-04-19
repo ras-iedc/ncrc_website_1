@@ -1,0 +1,261 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  MEMBER
+  ADMIN
+}
+
+enum UserStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id             String     @id @default(cuid())
+  name           String
+  email          String     @unique
+  passwordHash   String?
+  googleId       String?    @unique
+  role           Role       @default(MEMBER)
+  status         UserStatus @default(PENDING)
+  dob            DateTime?
+  phone          String?
+  address        String?    @db.Text
+  membershipId   String?    @unique
+  avatarPath     String?
+  emailVerified  Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  deletedAt      DateTime?
+
+  sessions            Session[]
+  inviteTokensCreated InviteToken[]
+  emailVerifications  EmailVerification[]
+  passwordResets      PasswordReset[]
+  payments            Payment[]
+  pendingPayments     PendingPayment[]
+  shopOrders          ShopOrder[]
+  posts               Post[]
+  notifications       Notification[]
+  feedbacks           Feedback[]
+  auditLogsPerformed  AuditLog[] @relation("AuditAdmin")
+  auditLogsReceived   AuditLog[] @relation("AuditTarget")
+
+  @@index([email])
+  @@index([status])
+  @@index([role])
+  @@index([deletedAt])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @db.VarChar(64)
+  expiresAt DateTime
+  userAgent String?  @db.Text
+  ip        String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+model InviteToken {
+  id          String    @id @default(cuid())
+  email       String
+  token       String    @unique @db.VarChar(64)
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdById String
+  createdAt   DateTime  @default(now())
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@index([token])
+  @@index([email])
+}
+
+model EmailVerification {
+  id        String    @id @default(cuid())
+  userId    String
+  token     String    @unique @db.VarChar(64)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  token     String    @unique @db.VarChar(64)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model Payment {
+  id                String   @id @default(cuid())
+  userId            String
+  amount            Int
+  currency          String   @default("INR")
+  razorpayOrderId   String   @unique
+  razorpayPaymentId String?  @unique
+  status            String   @default("PENDING")
+  description       String?
+  invoicePath       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([razorpayOrderId])
+  @@index([status])
+}
+
+model PendingPayment {
+  id              String   @id @default(cuid())
+  userId          String
+  razorpayOrderId String   @unique
+  amount          Int
+  currency        String   @default("INR")
+  description     String?
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([razorpayOrderId])
+}
+
+model Product {
+  id          String    @id @default(cuid())
+  name        String
+  description String?   @db.Text
+  price       Int
+  imageUrl    String?
+  stock       Int       @default(0)
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  orderItems ShopOrderItem[]
+
+  @@index([active])
+  @@index([deletedAt])
+}
+
+model ShopOrder {
+  id                String   @id @default(cuid())
+  userId            String
+  totalAmount       Int
+  razorpayOrderId   String?  @unique
+  razorpayPaymentId String?  @unique
+  status            String   @default("PENDING")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user  User            @relation(fields: [userId], references: [id])
+  items ShopOrderItem[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model ShopOrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Int
+
+  order   ShopOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product   @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Post {
+  id        String    @id @default(cuid())
+  title     String
+  content   String    @db.Text
+  type      String    @default("NEWS")
+  authorId  String
+  published Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  author User @relation(fields: [authorId], references: [id])
+
+  @@index([type])
+  @@index([authorId])
+  @@index([deletedAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String   @db.Text
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String
+  subject   String
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String
+  targetId  String?
+  metadata  Json?
+  ip        String?
+  userAgent String?  @db.Text
+  createdAt DateTime @default(now())
+
+  admin  User  @relation("AuditAdmin", fields: [adminId], references: [id])
+  target User? @relation("AuditTarget", fields: [targetId], references: [id])
+
+  @@index([adminId])
+  @@index([targetId])
+  @@index([action])
+  @@index([createdAt])
+}
