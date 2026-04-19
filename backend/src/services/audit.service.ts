@@ -10,14 +10,17 @@ interface AuditData {
 }
 
 export async function logAdminAction({ adminId, action, targetId, metadata, req }: AuditData): Promise<void> {
+  const ip = Array.isArray(req.ip) ? req.ip[0] : req.ip || req.socket.remoteAddress || null;
+  const userAgent = Array.isArray(req.headers['user-agent']) ? req.headers['user-agent'][0] : req.headers['user-agent'] || null;
+
   await prisma.auditLog.create({
     data: {
       adminId,
       action,
       targetId,
-      metadata: metadata ?? undefined,
-      ip: req.ip || req.socket.remoteAddress || null,
-      userAgent: req.headers['user-agent'] || null,
+      metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : undefined,
+      ip,
+      userAgent,
     },
   });
 }

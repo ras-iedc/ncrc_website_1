@@ -13,7 +13,7 @@ export const getNotifications = asyncHandler(async (req: Request, res: Response)
 });
 
 export const markRead = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
 
   const notification = await prisma.notification.findUnique({ where: { id } });
   if (!notification || notification.userId !== req.user!.id) {

@@ -45,7 +45,7 @@ export const getUsers = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const updateUser = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const { status, role, reason } = req.body;
 
   const user = await prisma.user.findUnique({ where: { id, deletedAt: null } });
@@ -96,7 +96,7 @@ export const updateUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
 
   await prisma.user.update({
     where: { id },

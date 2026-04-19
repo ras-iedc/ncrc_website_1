@@ -206,7 +206,7 @@ export const getHistory = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getInvoice = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
 
   const payment = await prisma.payment.findUnique({ where: { id } });
   if (!payment || payment.userId !== req.user!.id) {

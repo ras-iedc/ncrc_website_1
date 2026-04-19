@@ -25,8 +25,9 @@ export const getPosts = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getPost = asyncHandler(async (req: Request, res: Response) => {
+  const id = req.params.id as string;
   const post = await prisma.post.findUnique({
-    where: { id: req.params.id, deletedAt: null },
+    where: { id, deletedAt: null },
     include: { author: { select: { name: true } } },
   });
 
@@ -50,8 +51,9 @@ export const createPost = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const updatePost = asyncHandler(async (req: Request, res: Response) => {
+  const id = req.params.id as string;
   const post = await prisma.post.findUnique({
-    where: { id: req.params.id, deletedAt: null },
+    where: { id, deletedAt: null },
   });
 
   if (!post) {
@@ -60,7 +62,7 @@ export const updatePost = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const updated = await prisma.post.update({
-    where: { id: req.params.id },
+    where: { id },
     data: req.body,
   });
 
@@ -68,8 +70,9 @@ export const updatePost = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const deletePost = asyncHandler(async (req: Request, res: Response) => {
+  const id = req.params.id as string;
   await prisma.post.update({
-    where: { id: req.params.id },
+    where: { id },
     data: { deletedAt: new Date() },
   });
 
