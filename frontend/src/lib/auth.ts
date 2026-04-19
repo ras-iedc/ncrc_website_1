@@ -27,7 +27,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!res.ok) return null;
 
         const data = await res.json();
-        return data.user;
+        return {
+          ...data.user,
+          backendAccessToken: data.accessToken,
+          backendRefreshToken: data.refreshToken,
+        };
       },
     }),
   ],
@@ -35,16 +39,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as { role?: string }).role;
-        token.status = (user as { status?: string }).status;
+        token.role = (user as Record<string, unknown>).role as string;
+        token.status = (user as Record<string, unknown>).status as string;
+        token.backendAccessToken = (user as Record<string, unknown>).backendAccessToken as string;
+        token.backendRefreshToken = (user as Record<string, unknown>).backendRefreshToken as string;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as { id?: string }).id = token.id as string;
-        (session.user as { role?: string }).role = token.role as string;
-        (session.user as { status?: string }).status = token.status as string;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const user = session.user as any;
+        user.id = token.id as string;
+        user.role = token.role as string;
+        user.status = token.status as string;
+        user.backendAccessToken = token.backendAccessToken as string;
       }
       return session;
     },

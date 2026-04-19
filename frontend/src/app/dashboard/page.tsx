@@ -1,19 +1,38 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
 import type { User } from '@/types';
 
 export default function DashboardPage() {
+  const { data: session, status } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (status === 'loading') return;
+    if (!session?.user) {
+      setLoading(false);
+      return;
+    }
     api<{ user: User }>('/api/auth/me')
       .then((data) => setUser(data.user))
-      .catch(() => setUser(null))
+      .catch(() => {
+        // Fallback to session data if backend /me fails
+        const u = session.user as Record<string, unknown>;
+        setUser({
+          id: u.id as string,
+          name: u.name as string,
+          email: u.email as string,
+          role: u.role as 'MEMBER' | 'ADMIN',
+          status: u.status as 'PENDING' | 'APPROVED' | 'REJECTED',
+          emailVerified: false,
+          createdAt: '',
+        });
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [session, status]);
 
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>;

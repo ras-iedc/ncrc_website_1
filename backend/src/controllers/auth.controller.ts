@@ -122,6 +122,8 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
       role: user.role,
       status: user.status,
     },
+    accessToken,
+    refreshToken,
   });
 });
 
