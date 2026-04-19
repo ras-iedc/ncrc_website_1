@@ -3,69 +3,96 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import type { Payment } from '@/types';
+import DashboardShell from '@/components/DashboardShell';
 
-export default function PaymentHistoryPage() {
+export default function PaymentsHistoryPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => {
-    api<{ payments: Payment[] }>('/api/payments/history')
-      .then((data) => setPayments(data.payments))
-      .finally(() => setLoading(false));
-  }, []);
+  const fetchPayments = async (p = 1) => {
+    setLoading(true);
+    try {
+      const data = await api<{ payments: Payment[]; pages: number }>(`/api/payments/history?page=${p}&limit=15`);
+      setPayments(data.payments);
+      setTotalPages(data.pages);
+      setPage(p);
+    } finally { setLoading(false); }
+  };
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+  useEffect(() => { fetchPayments(); }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="mx-auto max-w-4xl">
-        <h1 className="mb-6 text-2xl font-bold text-gray-900">Payment History</h1>
-
-        {payments.length === 0 ? (
-          <p className="text-gray-600">No payments found.</p>
-        ) : (
-          <div className="overflow-x-auto rounded-xl bg-white shadow">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 font-medium text-gray-700">Date</th>
-                  <th className="px-4 py-3 font-medium text-gray-700">Description</th>
-                  <th className="px-4 py-3 font-medium text-gray-700">Amount</th>
-                  <th className="px-4 py-3 font-medium text-gray-700">Status</th>
-                  <th className="px-4 py-3 font-medium text-gray-700">Invoice</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {payments.map((p) => (
-                  <tr key={p.id}>
-                    <td className="px-4 py-3 text-gray-600">
-                      {new Date(p.createdAt).toLocaleDateString('en-IN')}
-                    </td>
-                    <td className="px-4 py-3 text-gray-900">{p.description || 'Payment'}</td>
-                    <td className="px-4 py-3 font-medium">₹{(p.amount / 100).toFixed(2)}</td>
-                    <td className="px-4 py-3">
-                      <span className={`rounded-full px-2 py-1 text-xs ${
-                        p.status === 'CAPTURED' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {p.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {p.invoicePath ? (
-                        <a href={`/api/payments/${p.id}/invoice`} target="_blank" className="text-red-600 hover:underline">
-                          Download
-                        </a>
-                      ) : '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        <a href="/dashboard" className="mt-4 inline-block text-sm text-gray-600 hover:underline">← Back to Dashboard</a>
+    <DashboardShell>
+      <div className="mb-6">
+        <h1 className="font-display text-3xl font-bold">Payment History</h1>
+        <p className="text-ink-500 text-sm">View all your payment transactions.</p>
       </div>
-    </div>
+
+      {loading ? (
+        <div className="neo-card p-12 text-center"><p className="text-ink-500">Loading...</p></div>
+      ) : payments.length === 0 ? (
+        <div className="neo-card p-12 text-center">
+          <p className="text-ink-500 mb-2">No payments yet.</p>
+          <p className="text-ink-400 text-sm">Your payment history will appear here once you make a payment.</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="neo-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Invoice</th>
+              </tr>
+            </thead>
+            <tbody>
+              {payments.map((p) => (
+                <tr key={p.id}>
+                  <td className="text-sm">{new Date(p.createdAt).toLocaleDateString()}</td>
+                  <td>{p.description || '—'}</td>
+                  <td className="font-mono font-semibold">₹{(p.amount / 100).toFixed(2)}</td>
+                  <td>
+                    <span className={`neo-badge text-xs ${
+                      p.status === 'PAID' ? 'bg-green-50 text-success' :
+                      p.status === 'PENDING' ? 'bg-yellow-50 text-warning' :
+                      'bg-accent-light text-accent'
+                    }`}>
+                      {p.status}
+                    </span>
+                  </td>
+                  <td>
+                    {p.status === 'PAID' ? (
+                      <a href={`${process.env.NEXT_PUBLIC_API_URL}/api/payments/${p.id}/invoice`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="text-xs text-accent font-semibold hover:underline">
+                        Download
+                      </a>
+                    ) : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-6">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <button key={p} onClick={() => fetchPayments(p)}
+              className={`w-10 h-10 border-2 font-display font-semibold text-sm transition-all ${
+                p === page ? 'border-ink-900 bg-ink-900 text-white shadow-[2px_2px_0_var(--color-accent)]'
+                  : 'border-ink-200 hover:border-ink-900'
+              }`}>
+              {p}
+            </button>
+          ))}
+        </div>
+      )}
+    </DashboardShell>
   );
 }

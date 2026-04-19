@@ -2,16 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import DashboardShell from '@/components/DashboardShell';
 
 interface Member {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  status: string;
-  membershipId?: string;
-  phone?: string;
-  createdAt: string;
+  id: string; name: string; email: string; role: string; status: string;
+  membershipId?: string; phone?: string; createdAt: string;
 }
 
 export default function AdminMembersPage() {
@@ -30,19 +25,14 @@ export default function AdminMembersPage() {
       setMembers(data.users);
       setTotalPages(data.pages);
       setPage(p);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   useEffect(() => { fetchMembers(); }, []);
 
   const handleAction = async (id: string, status: string) => {
     try {
-      await api(`/api/admin/users/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status }),
-      });
+      await api(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
       fetchMembers(page, filter);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Action failed');
@@ -50,77 +40,96 @@ export default function AdminMembersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Manage Members</h1>
-          <select value={filter} onChange={(e) => { setFilter(e.target.value); fetchMembers(1, e.target.value); }}
-            className="rounded-lg border px-3 py-2 text-sm">
-            <option value="">All Status</option>
-            <option value="PENDING">Pending</option>
-            <option value="APPROVED">Approved</option>
-            <option value="REJECTED">Rejected</option>
-          </select>
+    <DashboardShell>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="font-display text-3xl font-bold">Members</h1>
+          <p className="text-ink-500 text-sm">Manage club membership applications.</p>
         </div>
-
-        {loading ? (
-          <p>Loading...</p>
-        ) : (
-          <div className="overflow-x-auto rounded-xl bg-white shadow">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-4 py-3 font-medium">Email</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Role</th>
-                  <th className="px-4 py-3 font-medium">Membership ID</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {members.map((m) => (
-                  <tr key={m.id}>
-                    <td className="px-4 py-3">{m.name}</td>
-                    <td className="px-4 py-3 text-gray-600">{m.email}</td>
-                    <td className="px-4 py-3">
-                      <span className={`rounded-full px-2 py-1 text-xs ${
-                        m.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                        m.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
-                      }`}>{m.status}</span>
-                    </td>
-                    <td className="px-4 py-3">{m.role}</td>
-                    <td className="px-4 py-3">{m.membershipId || '-'}</td>
-                    <td className="px-4 py-3 space-x-2">
-                      {m.status === 'PENDING' && (
-                        <>
-                          <button onClick={() => handleAction(m.id, 'APPROVED')}
-                            className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700">Approve</button>
-                          <button onClick={() => handleAction(m.id, 'REJECTED')}
-                            className="rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700">Reject</button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {totalPages > 1 && (
-          <div className="mt-4 flex gap-2 justify-center">
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button key={i} onClick={() => fetchMembers(i + 1, filter)}
-                className={`rounded px-3 py-1 text-sm ${page === i + 1 ? 'bg-red-600 text-white' : 'bg-white border'}`}>
-                {i + 1}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <a href="/dashboard" className="mt-4 inline-block text-sm text-gray-600 hover:underline">← Back to Dashboard</a>
+        <select
+          value={filter}
+          onChange={(e) => { setFilter(e.target.value); fetchMembers(1, e.target.value); }}
+          className="neo-input w-auto"
+        >
+          <option value="">All Status</option>
+          <option value="PENDING">Pending</option>
+          <option value="APPROVED">Approved</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
       </div>
-    </div>
+
+      {loading ? (
+        <div className="neo-card p-12 text-center"><p className="text-ink-500">Loading...</p></div>
+      ) : members.length === 0 ? (
+        <div className="neo-card p-12 text-center"><p className="text-ink-500">No members found.</p></div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="neo-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th>Member ID</th>
+                <th>Joined</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {members.map((m) => (
+                <tr key={m.id}>
+                  <td className="font-semibold">{m.name}</td>
+                  <td className="font-mono text-xs">{m.email}</td>
+                  <td>{m.phone || '—'}</td>
+                  <td>
+                    <span className={`neo-badge text-xs ${
+                      m.status === 'APPROVED' ? 'bg-green-50 text-success' :
+                      m.status === 'PENDING' ? 'bg-yellow-50 text-warning' :
+                      'bg-accent-light text-accent'
+                    }`}>
+                      {m.status}
+                    </span>
+                  </td>
+                  <td className="font-mono text-xs">{m.membershipId || '—'}</td>
+                  <td className="text-xs text-ink-500">{new Date(m.createdAt).toLocaleDateString()}</td>
+                  <td>
+                    <div className="flex gap-2">
+                      {m.status !== 'APPROVED' && (
+                        <button onClick={() => handleAction(m.id, 'APPROVED')}
+                          className="text-xs font-semibold px-3 py-1 border-2 border-success text-success hover:bg-green-50 transition-colors">
+                          Approve
+                        </button>
+                      )}
+                      {m.status !== 'REJECTED' && (
+                        <button onClick={() => handleAction(m.id, 'REJECTED')}
+                          className="text-xs font-semibold px-3 py-1 border-2 border-accent text-accent hover:bg-accent-light transition-colors">
+                          Reject
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-6">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <button key={p} onClick={() => fetchMembers(p, filter)}
+              className={`w-10 h-10 border-2 font-display font-semibold text-sm transition-all ${
+                p === page ? 'border-ink-900 bg-ink-900 text-white shadow-[2px_2px_0_var(--color-accent)]'
+                  : 'border-ink-200 hover:border-ink-900'
+              }`}>
+              {p}
+            </button>
+          ))}
+        </div>
+      )}
+    </DashboardShell>
   );
 }

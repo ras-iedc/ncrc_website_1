@@ -42,3 +42,21 @@ export interface Notification {
   read: boolean;
   createdAt: string;
 }
+
+export interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  image?: string;
+  stock: number;
+  createdAt: string;
+}
+
+export interface ShopOrder {
+  id: string;
+  totalAmount: number;
+  status: string;
+  createdAt: string;
+  items: { quantity: number; price: number; product: { name: string } }[];
+}

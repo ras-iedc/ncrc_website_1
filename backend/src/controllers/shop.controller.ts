@@ -29,7 +29,7 @@ export const createShopOrder = asyncHandler(async (req: Request, res: Response) 
 
   let totalAmount = 0;
   for (const item of items) {
-    const product = products.find((p) => p.id === item.productId)!;
+    const product = products.find((p: { id: string; stock: number; price: number; name: string }) => p.id === item.productId)!;
     if (product.stock < item.quantity) {
       res.status(400).json({ error: `Insufficient stock for ${product.name}` });
       return;
@@ -50,7 +50,7 @@ export const createShopOrder = asyncHandler(async (req: Request, res: Response) 
       razorpayOrderId: order.id,
       items: {
         create: items.map((item: { productId: string; quantity: number }) => {
-          const product = products.find((p) => p.id === item.productId)!;
+          const product = products.find((p: { id: string; price: number }) => p.id === item.productId)!;
           return {
             productId: item.productId,
             quantity: item.quantity,
@@ -121,4 +121,41 @@ export const getMyOrders = asyncHandler(async (req: Request, res: Response) => {
   });
 
   res.json({ orders });
+});
+
+// Admin product CRUD
+export const adminGetProducts = asyncHandler(async (_req: Request, res: Response) => {
+  const products = await prisma.product.findMany({
+    where: { deletedAt: null },
+    orderBy: { createdAt: 'desc' },
+  });
+  res.json({ products });
+});
+
+export const createProduct = asyncHandler(async (req: Request, res: Response) => {
+  const { name, description, price, imageUrl, stock } = req.body;
+  const product = await prisma.product.create({
+    data: { name, description, price: Number(price), imageUrl, stock: Number(stock) || 0 },
+  });
+  res.status(201).json({ product });
+});
+
+export const updateProduct = asyncHandler(async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  const { name, description, price, imageUrl, stock, active } = req.body;
+  const data: Record<string, unknown> = {};
+  if (name !== undefined) data.name = name;
+  if (description !== undefined) data.description = description;
+  if (price !== undefined) data.price = Number(price);
+  if (imageUrl !== undefined) data.imageUrl = imageUrl;
+  if (stock !== undefined) data.stock = Number(stock);
+  if (active !== undefined) data.active = Boolean(active);
+  const product = await prisma.product.update({ where: { id }, data });
+  res.json({ product });
+});
+
+export const deleteProduct = asyncHandler(async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  await prisma.product.update({ where: { id }, data: { deletedAt: new Date(), active: false } });
+  res.json({ message: 'Product deleted' });
 });
